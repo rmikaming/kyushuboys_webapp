@@ -1,10 +1,80 @@
-from hospital import get_hospitals
-from database import init_db, sync_hospitals
+import streamlit as st
+from score import get_score
+import numpy as np
+import matplotlib.pyplot as plt
 
-init_db()
+plt.rcParams["font.family"] = "Meiryo"
 
-hospitals = get_hospitals()
+st.set_page_config(page_title='town health checkup', page_icon="🏥")
+st.title("まちの健康診断")
+st.caption("気になる町の健康診断を行いましょう！（諫早エリア編）")
 
-sync_hospitals(hospitals)
+tab1, tab2, tab3 = st.tabs(["フリーワード検索", "一覧から検索", "情報の更新"])
 
-print("保存完了")
+
+with tab1:
+    st.subheader("🔍フリーワード検索")
+    towns_text = st.text_area("✐町名を入力（改行区切り）")
+
+    if st.button("検索"):
+        towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
+        for t in towns:
+            with st.spinner("🔍検索中"):
+                hospital_density = get_score(t, "hospital_score")
+                school_density = get_score(t, "school_score")
+                crime_density = get_score(t, "crime_score")
+                hazard_level = get_score(t, "hazard_score")
+                bus_density = get_score(t, "bus_score")
+            col1, col2 = st.columns(2)
+            
+            #左側
+            with col1:
+                st.markdown(f"### 📋 {t} の住みよさカルテ")
+                st.write(f"医療充実度 : {hospital_density:.2f}")
+                st.write(f"教育充実度 : {school_density:.2f}")
+                st.write(f"治安充実度 : {crime_density:.2f}")
+                st.write(f"災害充実度 : {hazard_level:.2f}")
+                st.write(f"交通充実度 : {bus_density:.2f}")
+
+            #右側（レーダーチャート）
+            with col2:
+                labels = ["医療充実度", "教育充実度", "治安充実度", "災害充実度", "交通充実度"]
+                values = [hospital_density, school_density, crime_density, hazard_level, bus_density]
+
+                angles = np.linspace(0, 2 * np.pi,len(labels), endpoint=False).tolist()
+                values += values[:1]
+                angles += angles[:1]
+
+                fig, ax = plt.subplots(figsize=(5, 5), subplot_kw=dict(polar=True), facecolor="none")
+
+                #背景を透過
+                fig.patch.set_alpha(0)
+                ax.set_facecolor("none")
+
+                #レーダーチャート作成
+                ax.set_theta_offset(np.pi / 2)
+                ax.set_theta_direction(-1)
+
+                ax.plot(angles, values, color="#00BFFF", linewidth=2)
+                ax.fill(angles, values, color="#00BFFF", alpha=0.25)
+                ax.set_xticks(angles[:-1])
+                ax.set_xticklabels(labels)
+                ax.set_ylim(0, 100)
+                st.pyplot(fig)
+
+            st.write("📋 診断結果")
+            st.markdown(f"### {t}は...が充実している町です！")
+                        
+            st.divider()
+
+
+
+    else:
+        st.info("町が見つかりません")
+
+
+with tab2:
+    st.subheader("🔍一覧から検索")
+
+with tab3:
+    st.subheader("❔情報の更新")
