@@ -1,8 +1,10 @@
 import sqlite3
 import pandas as pd
+from database import DB_PATH
 
-conn = sqlite3.connect("town.db")
-df = pd.read_sql("SELECT * FROM town", conn)
+conn = sqlite3.connect(DB_PATH)
+#conn = sqlite3.connect("town.db")
+df = pd.read_sql("SELECT * FROM score", conn)
 
 #各要素の面積ごとの数（密度）を定義
 df["hospital_density"] = df["hospital_count"] / df["area"]
@@ -21,9 +23,11 @@ df["crime_score"] = 100 - deviation(df["crime_density"])
 df["hazard_score"] = deviation(df["hazard_level"])
 df["bus_score"] = deviation(df["bus_density"])
 
-#town_nameの各要素スコアを抽出
+#town_nameと要素を選択して偏差値をアウトプット
 def get_score(town_name, score_name):
     row = df[df["town_name"] == town_name]
     return row[score_name].iloc[0]
 
-print(get_score("B", "crime_score"))
+#全town_nameをリスト化
+def get_town_list():
+    return df["town_name"].tolist()
