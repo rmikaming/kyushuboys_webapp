@@ -2,13 +2,35 @@ import sqlite3
 from pathlib import Path
 
 DB_PATH = Path("data/town.db")
-#DB_PATH = Path("data/hospital.db")
+
 #DBへの接続
 def get_connection():
     DB_PATH.parent.mkdir(exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+#addressにtownテーブルのtown_nameが含まれる場合townにtown_nameを代入
+def find_town_name(address):
+    conn = get_connection()
+
+    #空のリストにtownテーブルのtown_nameを順番に加える
+    towns = []
+    town_names = conn.execute(
+        "SELECT town_name FROM town"
+    ).fetchall()
+    for town_name in town_names:
+        towns.append(town_name["town_name"])
+    conn.close()
+
+    #townsの中身を文字数が多い順番に並べ替える
+    towns.sort(key=len, reverse=True)
+
+    for town in towns:
+        if town in address:
+            return town
+
+    return None
 
 #DBにhospitalテーブルがない場合作成（schema.sqlを実行）
 def init_hospital_db():
@@ -27,14 +49,20 @@ def delete_all_hospitals():
 
 #DBのhospitalテーブルにhospital_dataを登録
 def insert_hospital(hospital_data):
+
+    town_name = find_town_name(
+        hospital_data["address"]
+    )
+
     conn = get_connection()
     conn.execute("""
         INSERT INTO hospitals
-        (name, address, created_at)
-        VALUES (?, ?, ?)
+        (name, address, town_name, created_at)
+        VALUES (?, ?, ?, ?)
     """, (
         hospital_data["name"],
         hospital_data["address"],
+        town_name,
         hospital_data["created_at"]
     ))
     conn.commit()
