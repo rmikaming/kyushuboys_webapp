@@ -68,10 +68,24 @@ def insert_hospital(hospital_data):
     conn.commit()
     conn.close()
 
-#DBのhospitalテーブルの中身を削除⇒リストの中身、hosupitals_dataを登録
+#hospitalsのtown_nameとscoreのtown_nameが同じものをカウント⇒scoreのhospital_countを更新
+def update_hospital_count():
+    conn = get_connection()
+    conn.execute("""
+        UPDATE score
+        SET hospital_count = (
+            SELECT COUNT(*)
+            FROM hospitals
+            WHERE hospitals.town_name = score.town_name
+        )    
+    """)
+    conn.commit()
+    conn.close()
+
+#DBのhospitalテーブルの中身を削除⇒リストの中身、hosupitals_dataを登録⇒scoreのhospital_countを更新
 def sync_hospitals(hospitals_data):
     delete_all_hospitals()
 
     for hospital_data in hospitals_data:
         insert_hospital(hospital_data)
-
+    update_hospital_count()

@@ -3,6 +3,8 @@ from score import get_score, get_town_list
 import numpy as np
 import matplotlib.pyplot as plt
 from hospital import update_hospital_db
+import importlib
+import score
 
 plt.rcParams["font.family"] = "Meiryo"
 
@@ -136,4 +138,6 @@ with tab3:
     if st.button("病院情報を更新"):
         with st.spinner("病院情報を更新中"):
             update_hospital_db()
+            #score.pyを再度読み込み、最新のDBからdfを作り直す
+            importlib.reload(score)
         st.success("病院情報更新完了です")
