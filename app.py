@@ -2,6 +2,9 @@ import streamlit as st
 from score import get_score, get_town_list
 import numpy as np
 import matplotlib.pyplot as plt
+import sqlite3
+import pandas as pd
+from database import DB_PATH
 from hospital import update_hospital_db
 import importlib
 import score
@@ -78,14 +81,33 @@ with tab1:
         st.info("町名を入力してください")
 
 with tab2:
-#選択肢に町名を入れる
-    town_list = get_town_list()
-    towns = st.multiselect(
-    "町名を選択",
-    town_list
-    )
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql("SELECT * FROM score", conn)
+    towns = []
 
-#以下tab1と同じ
+    area_order = [
+        "諫早地域",
+        "多良見地域",
+        "森山地域",
+        "飯盛地域",
+        "高来地域",
+        "小長井地域"
+    ]
+    #areaごとに塊を作りその中でチェックボックス作成
+    for area in area_order:
+        with st.expander(area):
+            area_towns = df[
+                df["town_area_name"] == area
+            ]["town_name"].tolist()
+
+            #選択肢に町名を入れる
+            cols = st.columns(4)
+            for i, town in enumerate(area_towns):
+                with cols[i%4]:
+                    if st.checkbox(town, key=f"town_{town}"):
+                        towns.append(town)
+
+    #以下tab1と同じ
     for t in towns:
         with st.spinner("🔍検索中"):
             hospital_density = get_score(t, "hospital_score")
