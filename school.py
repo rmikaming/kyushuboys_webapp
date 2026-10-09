@@ -72,7 +72,7 @@ def sync_db():
     conn.commit()
     conn.close()
 
-# 実行関数
+#  実行関数
 def update_school_db():
     init_db()
     sync_db()
