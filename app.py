@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sqlite3
 import pandas as pd
-from database import DB_PATH
+from database import DB_PATH, sync_score_from_town
 from hospital import update_hospital_db
 import importlib
 import score
@@ -154,10 +154,30 @@ with tab2:
 
 with tab3:
     st.subheader("❔情報の更新")
+    col1, col2 ,col3= st.columns(3)
+    with col1:
+        if st.button("病院情報を更新"):
+            with st.spinner("病院情報を更新中"):
+                update_hospital_db()
+                #score.pyを再度読み込み、最新のDBからdfを作り直す
+                importlib.reload(score)
+            st.success("病院情報更新完了です")
 
-    if st.button("病院情報を更新"):
-        with st.spinner("病院情報を更新中"):
-            update_hospital_db()
+        st.button("災害情報を更新")
+
+    with col2:
+        st.button("学校情報を更新")
+
+        st.button("交通情報を更新")
+
+    with col3:
+        st.button("治安情報を更新")
+
+    st.divider()
+
+    if st.button("町情報を更新"):
+        with st.spinner("町情報を更新中"):
+            sync_score_from_town()
             #score.pyを再度読み込み、最新のDBからdfを作り直す
             importlib.reload(score)
-        st.success("病院情報更新完了です")
+        st.success("町情報更新完了です")

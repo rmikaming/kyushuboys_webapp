@@ -32,6 +32,9 @@ def find_town_name(address):
 
     return None
 
+#hospital
+#-------------------------------------------------------------------------------------------------------
+
 #DBにhospitalテーブルがない場合作成（schema.sqlを実行）
 def init_hospital_db():
     conn = get_connection()
@@ -77,7 +80,8 @@ def update_hospital_count():
             SELECT COUNT(*)
             FROM hospitals
             WHERE hospitals.town_name = score.town_name
-        )    
+            AND hospitals.name NOT LIKE '%薬局%'
+        )
     """)
     conn.commit()
     conn.close()
@@ -88,4 +92,39 @@ def sync_hospitals(hospitals_data):
 
     for hospital_data in hospitals_data:
         insert_hospital(hospital_data)
+    update_hospital_count()
+
+#-------------------------------------------------------------------------------------------------------
+
+#town
+#-------------------------------------------------------------------------------------------------------
+
+#DBのtownテーブルの中身を削除
+def delete_all_score():
+    conn = get_connection()
+    conn.execute("DELETE FROM score")
+    conn.commit()
+    conn.close()
+
+#DBのscoreテーブルにtownテーブルを登録
+def insert_score_from_town():
+    conn = get_connection()
+    conn.execute("""
+        INSERT INTO score(
+        town_name,
+        area,
+        town_area_name
+        )
+        SELECT
+            town_name,
+            area,
+            town_area_name
+        FROM town
+    """)
+    conn.commit()
+    conn.close()
+
+def sync_score_from_town():
+    delete_all_score()
+    insert_score_from_town()
     update_hospital_count()
