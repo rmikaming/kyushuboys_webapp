@@ -26,6 +26,8 @@ df["bus_score"] = deviation(df["bus_density"])
 #town_nameと要素を選択して偏差値をアウトプット
 def get_score(town_name, score_name):
     row = df[df["town_name"] == town_name]
+    if row.empty:
+        return None
     return row[score_name].iloc[0]
 
 #全town_nameをリスト化

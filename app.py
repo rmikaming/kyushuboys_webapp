@@ -28,6 +28,9 @@ with tab1:
         for t in towns:
             with st.spinner("🔍検索中"):
                 hospital_density = get_score(t, "hospital_score")
+                if hospital_density is None:
+                    st.warning(f"{t}の検索結果が見つかりません")
+                    continue
                 school_density = get_score(t, "school_score")
                 crime_density = get_score(t, "crime_score")
                 hazard_level = get_score(t, "hazard_score")
@@ -74,11 +77,6 @@ with tab1:
             st.markdown(f"### {t}は...が充実している町です！")
                         
             st.divider()
-
-
-
-    else:
-        st.info("町名を入力してください")
 
 with tab2:
     conn = sqlite3.connect(DB_PATH)
