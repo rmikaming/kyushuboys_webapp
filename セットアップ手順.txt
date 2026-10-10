@@ -1,0 +1,68 @@
+🧱 1. town.db を作成する（初期テーブル生成）
+まず、空の town.db を作成し、基本構造（towns テーブル）を生成します。
+
+コード
+python create_towns_table.py
+このスクリプトは以下を行います：
+
+town.db を新規作成
+
+towns テーブルを作成
+
+town_name / lat / lon などの基本カラムを追加
+
+必要に応じて町名データを投入（スクリプト内容に依存）
+
+🧩 2. hazard カラムを追加する
+hazard 関連のカラム（洪水・土砂・地震・総合スコア）を towns に追加します。
+
+コード
+python caramu_add.py
+追加されるカラム：
+
+hazard_flood
+
+hazard_landslide
+
+hazard_quake
+
+hazard_score
+
+既に存在する場合はスキップされるため安全です。
+
+🧪 3. hazard の仮データを投入する（API停止時のみ）
+国交省 API が停止している場合は、仮データを投入します。
+
+コード
+python hazard_dummy_random.py
+このスクリプトは：
+
+hazard_flood
+
+hazard_landslide
+
+hazard_quake
+
+にランダム値を入れます。
+
+📊 4. hazard_score（総合スコア）を towns に追加する
+コード
+python hazard_score_insert.py
+このスクリプトは：
+
+hazard_flood / landslide / quake を元に hazard_score を計算
+
+towns テーブルに hazard_score を保存
+
+🌐 5. API復旧後に本番データを取得する（任意）
+API が復旧したら、本番データで towns を更新できます。
+
+コード
+python hazard_update.py
+このスクリプトは：
+
+lat / lon を使って hazard API を叩く
+
+hazard_flood / landslide / quake を更新
+
+hazard_score を再計算
