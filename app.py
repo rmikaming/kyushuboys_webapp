@@ -40,12 +40,24 @@ with tab1:
             
             #左側
             with col1:
-                st.markdown(f"### 📋 {t} の住みよさカルテ")
+                st.markdown(f"#### 📋 {t} の住みよさカルテ")
                 st.write(f"医療充実度 : {hospital_density:.2f}")
                 st.write(f"教育充実度 : {school_density:.2f}")
                 st.write(f"治安充実度 : {crime_density:.2f}")
                 st.write(f"災害充実度 : {hazard_level:.2f}")
                 st.write(f"交通充実度 : {bus_density:.2f}")
+
+            scores ={
+                "医療環境": hospital_density,
+                "教育環境": school_density,
+                "治安": crime_density,
+                "災害への安全性": hazard_level,
+                "交通環境": bus_density
+            }
+            good_points = [
+                name for name, score in scores.items()
+                if score > 60
+            ]
 
             #右側（レーダーチャート）
             with col2:
@@ -73,8 +85,10 @@ with tab1:
                 ax.set_ylim(0, 100)
                 st.pyplot(fig)
 
+        if good_points:
+            perfect = "と".join(good_points)
             st.write("📋 診断結果")
-            st.markdown(f"### {t}は...が充実している町です！")
+            st.markdown(f"### {t}は<span style='color:#00BFFF'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
                         
             st.divider()
 
@@ -114,10 +128,22 @@ with tab2:
             hazard_level = get_score(t, "hazard_score")
             bus_density = get_score(t, "bus_score")
 
+        scores ={
+            "医療環境": hospital_density,
+            "教育環境": school_density,
+            "治安": crime_density,
+            "災害への安全性": hazard_level,
+            "交通環境": bus_density
+        }
+        good_points = [
+            name for name, score in scores.items()
+            if score > 60
+        ]
+
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown(f"### 📋 {t} の住みよさカルテ")
+            st.markdown(f"#### 📋 {t} の住みよさカルテ")
             st.write(f"医療充実度 : {hospital_density:.2f}")
             st.write(f"教育充実度 : {school_density:.2f}")
             st.write(f"治安充実度 : {crime_density:.2f}")
@@ -147,8 +173,10 @@ with tab2:
             ax.set_ylim(0, 100)
             st.pyplot(fig)
 
-        st.write("📋 診断結果")
-        st.markdown(f"### {t}は...が充実している町です！")
+        if good_points:
+            perfect = "と".join(good_points)
+            st.write("📋 診断結果")
+            st.markdown(f"### {t}は<span style='color:#00BFFF'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
                         
         st.divider()
 
