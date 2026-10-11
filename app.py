@@ -8,6 +8,8 @@ from database import DB_PATH
 from hospital import update_hospital_db
 import importlib
 import score
+from hazard_score import calculate_hazard_score
+
 
 plt.rcParams["font.family"] = "Meiryo"
 
@@ -25,13 +27,27 @@ with tab1:
 
     if st.button("検索"):
         towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
+
+    # ★ 災害スコアを都度計算
+        hazard_df = calculate_hazard_score()
+        print(hazard_df[["town_name", "hazard_score"]])
+
         for t in towns:
             with st.spinner("🔍検索中"):
                 hospital_density = get_score(t, "hospital_score")
                 school_density = get_score(t, "school_score")
                 crime_density = get_score(t, "crime_score")
-                hazard_level = get_score(t, "hazard_score")
                 bus_density = get_score(t, "bus_score")
+
+            # ★ hazard_score は DB ではなく hazard_df から取得
+                hazard_row = hazard_df[hazard_df["town_name"] == t]
+
+                if len(hazard_row) == 0:
+                    print(f"[WARN] hazard_score 未登録: {t}")
+                    hazard_level = 0.0
+                else:
+                    hazard_level = hazard_row["hazard_score"].iloc[0]
+                print(t, hazard_level)
 
             col1, col2 = st.columns(2)
             
@@ -84,6 +100,9 @@ with tab2:
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql("SELECT * FROM score", conn)
     towns = []
+
+    # ★ 災害スコアを都度計算（一覧検索時に一度だけ）
+    hazard_df = calculate_hazard_score()
 
     area_order = [
         "諫早地域",

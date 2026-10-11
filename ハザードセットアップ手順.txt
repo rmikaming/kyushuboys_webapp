@@ -1,0 +1,80 @@
+📘 ハザードセットアップ手順書（hazard_data_update.py なし版 / 完成版）
+■ 前提条件
+town.db はすでに存在しており、
+town テーブルに town_name / lat / lon が入っている状態からスタート。
+
+hazard_data（国土数値情報）は zip で配布する。
+
+hazard_score.py は hazard_data を直接読み込んで hazard_score を計算する本番ロジック。
+
+setup_hazard.py は town.db に hazard カラムを追加し、hazard_score を書き込む本番セットアップ。
+
+
+📌 最終的な正しい手順（簡潔版）
+hazard_data.zip を展開してプロジェクト直下に置く
+
+python setup_hazard.py を実行
+
+（任意）python hazard_score.py で動作確認
+
+streamlit run app.py を起動
+
+
+■ ① hazard_data.zip を展開してプロジェクト直下に置く
+展開後の構成はこうなる：
+
+コード
+your_project/
+    hazard_data/
+        flood_river/
+        flood_mesh/
+        landslide/
+        tsunami/
+※ フォルダ名は hazard_score.py のコードと一致している必要がある
+（あなたのコードはこの構成で読み込むようになっている）
+
+■ ② setup_hazard.py を実行して town.db に hazard カラムを追加する
+コード
+python setup_hazard.py
+setup_hazard.py が行うこと
+town テーブルに以下のカラムを追加
+
+hazard_flood
+
+hazard_landslide
+
+hazard_quake
+
+hazard_level
+
+hazard_score
+
+hazard_score.py の calculate_hazard_score() を呼び出して hazard_score を計算
+
+計算結果を town.db に書き込む
+
+これで town.db が hazard 対応になる。
+
+■ ③ hazard_score.py を起動する必要はない（setup_hazard.py が呼んでいるため）
+setup_hazard.py 内で：
+
+python
+from hazard_score import calculate_hazard_score
+を呼んでいるので、
+hazard_score.py を別途起動する必要はない。
+
+ただし、動作確認したい場合は：
+
+コード
+python hazard_score.py
+で hazard_score の DataFrame が返ってくるか確認できる。
+
+
+■ ④ app.py を起動する
+hazard_score が town.db に入ったので、
+アプリ側で hazard_score を参照できるようになる。
+
+コード
+streamlit run app.py
+これで hazard_score が UI に反映される。
+
