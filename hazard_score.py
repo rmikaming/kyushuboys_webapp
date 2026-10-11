@@ -19,8 +19,7 @@ def calculate_hazard_score():
     flood_mesh  = gpd.read_file("hazard_data/flood_mesh/10_計画規模/A31b-10-25_10_4929.shp").to_crs("EPSG:4326")
     flood_river = load_flood_river()
     landslide   = gpd.read_file("hazard_data/landslide/A33-25_42Polygon.shp").to_crs("EPSG:4326")
-    tsunami = gpd.read_file("hazard_data/tsunami/A40-16_42.shp").to_crs("EPSG:4326")
-
+    tsunami     = gpd.read_file("hazard_data/tsunami/A40-16_42.shp").to_crs("EPSG:4326")
 
     hazard_flood, hazard_landslide, hazard_quake = [], [], []
 
@@ -44,3 +43,41 @@ def calculate_hazard_score():
 
     towns["hazard_score"] = deviation(towns["hazard_level"])
     return towns
+
+# ★★★ score テーブルへ hazard_score を書き込む処理（追加） ★★★
+
+def write_hazard_score_to_sqlite(towns):
+    conn = sqlite3.connect("data/town.db")
+    cur = conn.cursor()
+
+    # カラムがなければ追加
+    try:
+        cur.execute("ALTER TABLE score ADD COLUMN hazard_score REAL;")
+    except:
+        pass
+
+    # UPDATE で書き込み
+    for _, row in towns.iterrows():
+        cur.execute("""
+            UPDATE score
+            SET hazard_score = ?
+            WHERE town_name = ?
+        """, (float(row["hazard_score"]), row["town_name"]))
+
+    conn.commit()
+    conn.close()
+
+# ---------- メイン処理 ----------
+
+if __name__ == "__main__":
+    print("=== hazard_score 生成開始 ===")
+
+    towns = calculate_hazard_score()
+    print(towns[["town_name", "hazard_score"]].head())
+
+    write_hazard_score_to_sqlite(towns)
+    print("hazard_score 書き込み完了")
+
+    print("=== 完了 ===")
+
+
