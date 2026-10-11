@@ -48,3 +48,5 @@ conn.commit()
 conn.close()
 
 print("🎉 hazard テーブルへのセットアップが完了しました！")
+
+

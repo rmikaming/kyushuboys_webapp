@@ -79,3 +79,5 @@ if __name__ == "__main__":
     print("hazard_score 書き込み完了")
 
     print("=== 完了 ===")
+
+
