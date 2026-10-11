@@ -58,7 +58,11 @@ with tab1:
                 name for name, score in scores.items()
                 if score > 60
             ]
-
+            weak_points = [
+                name for name, score in scores.items()
+                if score < 40
+            ]
+       
             #右側（レーダーチャート）
             with col2:
                 labels = ["医療充実度", "教育充実度", "治安充実度", "災害充実度", "交通充実度"]
@@ -88,8 +92,13 @@ with tab1:
         if good_points:
             perfect = "と".join(good_points)
             st.write("📋 診断結果")
-            st.markdown(f"### {t}は<span style='color:#00BFFF'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
-                        
+            st.markdown(f"### {t}は<span style='color:#FF9800'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
+
+        if weak_points:
+            more = "と".join(weak_points)
+            st.write("📋 診断結果")
+            st.markdown(f"### {t}は<span style='color:#00BFFF'>{more}</span>が弱点です！", unsafe_allow_html=True)
+
             st.divider()
 
 with tab2:
@@ -139,7 +148,11 @@ with tab2:
             name for name, score in scores.items()
             if score > 60
         ]
-
+        weak_points = [
+            name for name, score in scores.items()
+            if score < 50
+        ]
+        
         col1, col2 = st.columns(2)
 
         with col1:
@@ -176,8 +189,13 @@ with tab2:
         if good_points:
             perfect = "と".join(good_points)
             st.write("📋 診断結果")
-            st.markdown(f"### {t}は<span style='color:#00BFFF'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
-                        
+            st.markdown(f"### {t}は<span style='color:#FF9800'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
+
+        if weak_points:
+            more = "と".join(weak_points)
+            st.write("📋 診断結果")
+            st.markdown(f"### {t}は<span style='color:#00BFFF'>{more}</span>が弱点です！", unsafe_allow_html=True)
+
         st.divider()
 
 with tab3:
