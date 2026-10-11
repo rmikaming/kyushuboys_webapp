@@ -8,7 +8,6 @@ from database import DB_PATH
 from hospital import update_hospital_db
 import importlib
 import score
-from hazard_score import calculate_hazard_score
 
 
 plt.rcParams["font.family"] = "Meiryo"
@@ -28,26 +27,15 @@ with tab1:
     if st.button("検索"):
         towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
 
-    # ★ 災害スコアを都度計算
-        hazard_df = calculate_hazard_score()
-        print(hazard_df[["town_name", "hazard_score"]])
-
+        
         for t in towns:
             with st.spinner("🔍検索中"):
                 hospital_density = get_score(t, "hospital_score")
-                school_density = get_score(t, "school_score")
-                crime_density = get_score(t, "crime_score")
-                bus_density = get_score(t, "bus_score")
-
-            # ★ hazard_score は DB ではなく hazard_df から取得
-                hazard_row = hazard_df[hazard_df["town_name"] == t]
-
-                if len(hazard_row) == 0:
-                    print(f"[WARN] hazard_score 未登録: {t}")
-                    hazard_level = 0.0
-                else:
-                    hazard_level = hazard_row["hazard_score"].iloc[0]
-                print(t, hazard_level)
+                school_density   = get_score(t, "school_score")
+                crime_density    = get_score(t, "crime_score")
+                traffic_density  = get_score(t, "traffic_score")
+                hazard_level     = get_score(t, "hazard_score")
+                traffic_density  = get_score(t, "traffic_score")
 
             col1, col2 = st.columns(2)
             
@@ -58,12 +46,12 @@ with tab1:
                 st.write(f"教育充実度 : {school_density:.2f}")
                 st.write(f"治安充実度 : {crime_density:.2f}")
                 st.write(f"災害充実度 : {hazard_level:.2f}")
-                st.write(f"交通充実度 : {bus_density:.2f}")
+                st.write(f"交通充実度 : {traffic_density:.2f}")
 
             #右側（レーダーチャート）
             with col2:
                 labels = ["医療充実度", "教育充実度", "治安充実度", "災害充実度", "交通充実度"]
-                values = [hospital_density, school_density, crime_density, hazard_level, bus_density]
+                values = [hospital_density, school_density, crime_density, hazard_level, traffic_density]
 
                 angles = np.linspace(0, 2 * np.pi,len(labels), endpoint=False).tolist()
                 values += values[:1]
@@ -99,10 +87,9 @@ with tab1:
 with tab2:
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql("SELECT * FROM score", conn)
+    conn.close()
     towns = []
 
-    # ★ 災害スコアを都度計算（一覧検索時に一度だけ）
-    hazard_df = calculate_hazard_score()
 
     area_order = [
         "諫早地域",
@@ -133,7 +120,7 @@ with tab2:
             school_density = get_score(t, "school_score")
             crime_density = get_score(t, "crime_score")
             hazard_level = get_score(t, "hazard_score")
-            bus_density = get_score(t, "bus_score")
+            traffic_density = get_score(t, "traffic_score")
 
         col1, col2 = st.columns(2)
 
@@ -143,11 +130,11 @@ with tab2:
             st.write(f"教育充実度 : {school_density:.2f}")
             st.write(f"治安充実度 : {crime_density:.2f}")
             st.write(f"災害充実度 : {hazard_level:.2f}")
-            st.write(f"交通充実度 : {bus_density:.2f}")
+            st.write(f"交通充実度 : {traffic_density:.2f}")
 
         with col2:
             labels = ["医療充実度", "教育充実度", "治安充実度", "災害充実度", "交通充実度"]
-            values = [hospital_density, school_density, crime_density, hazard_level, bus_density]
+            values = [hospital_density, school_density, crime_density, hazard_level, traffic_density]
 
             angles = np.linspace(0, 2 * np.pi,len(labels), endpoint=False).tolist()
             values += values[:1]
