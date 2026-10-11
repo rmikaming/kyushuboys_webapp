@@ -7,54 +7,48 @@ import sqlite3
 import time
 import re
 
-CSV_URL = "https://www.police.pref.nagasaki.jp/police/wp-content/uploads/2026/08/nagasaki_2025zitensyatou.csv"
+CSV_URL = {
+    "自転車盗": "https://www.police.pref.nagasaki.jp/police/wp-content/uploads/2026/08/nagasaki_2025zitensyatou.csv",
+    "ひったくり": "https://www.police.pref.nagasaki.jp/police/wp-content/uploads/2026/08/nagasaki_2025hittakuri.csv",
+}
 
 def normalize_town(town_raw):
-    """
-    町名を ●●町 に統一し、丁目を分離する
-    （既存ロジックを残しつつ、町が付かない丁目にも対応）
-    """
     if town_raw is None or isinstance(town_raw, float):
         return None, None
 
     town_raw = str(town_raw)
 
-    # ① 既存ロジック（浜町1丁目 → 浜町, 1）
     m = re.match(r"(.+?町)(\d+)丁目", town_raw)
     if m:
         return m.group(1), m.group(2)
 
-    # ② 新規追加：町が付かない丁目（中川2丁目 → 中川, 2）
     m2 = re.match(r"(.+?)(\d+)丁目", town_raw)
     if m2:
         return m2.group(1), m2.group(2)
 
-    # ③ 既存ロジック（大橋町 → 大橋町, None）
     if "町" in town_raw:
         return town_raw, None
 
-    # ④ その他（町名が入っていないケース）
     return town_raw, None
 
 
-def get_jitensha_theft():
-
-    records = []
-
-    print("Downloading:", CSV_URL)
+def load_crime_csv(crime_type, url):
+    print(f"Downloading: {crime_type} → {url}")
     time.sleep(1)
 
-    res = requests.get(CSV_URL)
+    res = requests.get(url)
     df = pd.read_csv(StringIO(res.text), encoding="shift_jis")
 
     df["町丁目（発生地）"] = df["町丁目（発生地）"].fillna("")
 
-    for _, row in df.iterrows():
+    records = []
 
+    for _, row in df.iterrows():
         town_raw = row.get("町丁目（発生地）", None)
         town_name, chome = normalize_town(town_raw)
 
         records.append({
+            "crime_type": crime_type,
             "city": row.get("市区町村（発生地）", None),
             "town": town_name,
             "chome": chome,
@@ -65,43 +59,44 @@ def get_jitensha_theft():
             "created_at": datetime.now().isoformat()
         })
 
-    return records   
+    return records
 
 
-
-def save_to_sqlite(records):
+def save_all_crimes_to_sqlite(all_records):
     conn = sqlite3.connect("crime.db")
-    df = pd.DataFrame(records)
-    df.to_sql("crime_jitensha_raw", conn, if_exists="replace", index=False)
+    df = pd.DataFrame(all_records)
+    df.to_sql("crime_raw_all", conn, if_exists="replace", index=False)
     conn.close()
+    print("全犯罪種別の raw データを crime_raw_all に保存しました。")
+
 
 def save_stats_to_sqlite():
     conn = sqlite3.connect("crime.db")
+    df = pd.read_sql("SELECT * FROM crime_raw_all", conn)
 
-    # 正しいテーブル名に修正
-    df = pd.read_sql("SELECT * FROM crime_jitensha_raw", conn)
-
-    # 町別に件数を集計
     stats = (
-        df.groupby("town")
+        df.groupby(["town", "crime_type"])
           .size()
           .reset_index(name="count")
           .sort_values("count", ascending=False)
     )
 
-    # crime_stats テーブルとして保存（上書き）
-    stats.to_sql("crime_stats", conn, if_exists="replace", index=False)
-
+    stats.to_sql("crime_stats_all", conn, if_exists="replace", index=False)
     conn.close()
-    print("町別犯罪件数テーブル（crime_stats）を作成しました。")
+
+    print("町 × 犯罪種別の crime_stats_all を作成しました。")
 
 
+# 実行
+all_records = []
 
+for crime_type, url in CSV_URL.items():
+    records = load_crime_csv(crime_type, url)
+    all_records.extend(records)
 
-records = get_jitensha_theft()
-save_to_sqlite(records)
-save_stats_to_sqlite()   # ← これを追加
+save_all_crimes_to_sqlite(all_records)
+save_stats_to_sqlite()
 
-print("最新の自転車盗データをSQLiteへ保存しました。")
-print(records[:5])
+print("全犯罪種別の処理が完了しました。")
+print(all_records[:5])
 
