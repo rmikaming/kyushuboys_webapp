@@ -1,63 +1,69 @@
 import geopandas as gpd
 import pandas as pd
 import sqlite3
-from shapely.geometry import Point
 import glob
 import os
 
+SCORE_DB = "data/score.db"
+
 def load_flood_river():
     folder = "hazard_data/flood_river/10_計画規模"
-    shp_files = glob.glob(os.path.join(folder, "*.shp"))
-    gdfs = [gpd.read_file(f).to_crs("EPSG:4326") for f in shp_files]
-    return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
+    shp_files = glob.glob(os.path.join(folder, "A31a-*.shp"))
+    gdf_list = [gpd.read_file(shp).to_crs("EPSG:4326") for shp in shp_files]
+    return gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True), crs="EPSG:4326")
+
 
 def calculate_hazard_score():
+<<<<<<< HEAD
     conn = sqlite3.connect("school.db")
     towns = pd.read_sql("SELECT town_name, lat, lon FROM school_town", conn)
     conn.close()
+=======
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
 
-    flood_mesh  = gpd.read_file("hazard_data/flood_mesh/10_計画規模/A31b-10-25_10_4929.shp").to_crs("EPSG:4326")
-    flood_river = load_flood_river()
-    landslide   = gpd.read_file("hazard_data/landslide/A33-25_42Polygon.shp").to_crs("EPSG:4326")
-    tsunami     = gpd.read_file("hazard_data/tsunami/A40-16_42.shp").to_crs("EPSG:4326")
+    # 町界
+    towns_gdf = gpd.read_file("isahaya_geo/r2ka42204.shp").to_crs("EPSG:4326")
+    towns_gdf = towns_gdf.rename(columns={"S_NAME": "town_name"})
+    towns_gdf["centroid"] = towns_gdf.geometry.centroid
 
-    hazard_flood, hazard_landslide, hazard_quake = [], [], []
+    # ハザードレイヤ
+    haz_flood_mesh = gpd.read_file("hazard_data/flood_mesh/10_計画規模/A31b-10-25_10_4929.shp").to_crs("EPSG:4326")
+    haz_flood_river = load_flood_river()
+    haz_landslide = gpd.read_file("hazard_data/landslide/A33-25_42Polygon.shp").to_crs("EPSG:4326")
+    haz_tsunami = gpd.read_file("hazard_data/tsunami/A40-16_42.shp").to_crs("EPSG:4326")
 
-    for _, row in towns.iterrows():
-        point = Point(row["lon"], row["lat"])
-        flood_flag = flood_river.contains(point).any() or flood_mesh.contains(point).any()
-        landslide_flag = landslide.contains(point).any()
-        tsunami_flag = tsunami.contains(point).any()
+    def check_hazard(point, layer):
+        return layer.contains(point).any()
 
-        hazard_flood.append(1 if flood_flag else 0)
-        hazard_landslide.append(1 if landslide_flag else 0)
-        hazard_quake.append(1 if tsunami_flag else 0)
+    towns_gdf["haz_flood_mesh"] = towns_gdf["centroid"].apply(lambda p: check_hazard(p, haz_flood_mesh))
+    towns_gdf["haz_flood_river"] = towns_gdf["centroid"].apply(lambda p: check_hazard(p, haz_flood_river))
+    towns_gdf["haz_landslide"] = towns_gdf["centroid"].apply(lambda p: check_hazard(p, haz_landslide))
+    towns_gdf["haz_tsunami"] = towns_gdf["centroid"].apply(lambda p: check_hazard(p, haz_tsunami))
 
-    towns["hazard_flood"] = hazard_flood
-    towns["hazard_landslide"] = hazard_landslide
-    towns["hazard_quake"] = hazard_quake
-    towns["hazard_level"] = towns["hazard_flood"] + towns["hazard_landslide"] + towns["hazard_quake"]
+    towns_gdf["hazard_score"] = (
+        towns_gdf["haz_flood_mesh"].astype(int) * 0.3 +
+        towns_gdf["haz_flood_river"].astype(int) * 0.3 +
+        towns_gdf["haz_landslide"].astype(int) * 0.2 +
+        towns_gdf["haz_tsunami"].astype(int) * 0.2
+    )
 
-    def deviation(col):
-        return 50 + 10 * (col - col.mean()) / col.std()
+    towns_gdf["hazard_score"] = towns_gdf["hazard_score"].fillna(0)
 
-    towns["hazard_score"] = deviation(towns["hazard_level"])
-    return towns
+    return towns_gdf[["town_name", "hazard_score"]]
 
-# ★★★ score テーブルへ hazard_score を書き込む処理（追加） ★★★
 
+<<<<<<< HEAD
 def write_hazard_score_to_sqlite(towns):
     conn = sqlite3.connect("school.db")
+=======
+def save_hazard_score_to_score_db():
+    df = calculate_hazard_score()
+
+    conn = sqlite3.connect(SCORE_DB)
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
     cur = conn.cursor()
 
-    # カラムがなければ追加
-    try:
-        cur.execute("ALTER TABLE score ADD COLUMN hazard_score REAL;")
-    except:
-        pass
-
-    # UPDATE で書き込み
-    for _, row in towns.iterrows():
+    for _, row in df.iterrows():
         cur.execute("""
             UPDATE score
             SET hazard_score = ?
@@ -67,17 +73,7 @@ def write_hazard_score_to_sqlite(towns):
     conn.commit()
     conn.close()
 
-# ---------- メイン処理 ----------
 
 if __name__ == "__main__":
-    print("=== hazard_score 生成開始 ===")
-
-    towns = calculate_hazard_score()
-    print(towns[["town_name", "hazard_score"]].head())
-
-    write_hazard_score_to_sqlite(towns)
-    print("hazard_score 書き込み完了")
-
-    print("=== 完了 ===")
-
-
+    save_hazard_score_to_score_db()
+    print("🌋 hazard_score → score.db に保存完了")
