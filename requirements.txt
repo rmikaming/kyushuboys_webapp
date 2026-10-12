@@ -2,3 +2,10 @@ streamlit
 pandas
 numpy
 matplotlib
+requests
+beautifulsoup4
+geopandas
+shapely
+pyproj
+pyogrio
+fiona
