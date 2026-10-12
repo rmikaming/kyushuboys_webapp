@@ -8,6 +8,11 @@ from database import DB_PATH
 from hospital import update_hospital_db
 import importlib
 import score
+<<<<<<< HEAD
+
+
+=======
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
 
 plt.rcParams["font.family"] = "Meiryo"
 
@@ -25,6 +30,14 @@ with tab1:
 
     if st.button("検索"):
         towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
+<<<<<<< HEAD
+
+    # ★ 災害スコアを都度計算
+        
+       
+
+=======
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
         for t in towns:
             with st.spinner("🔍検索中"):
                 hospital_density = get_score(t, "hospital_score")
@@ -85,6 +98,12 @@ with tab2:
     df = pd.read_sql("SELECT * FROM score", conn)
     towns = []
 
+<<<<<<< HEAD
+    # ★ 災害スコアを都度計算（一覧検索時に一度だけ）
+   
+
+=======
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
     area_order = [
         "諫早地域",
         "多良見地域",

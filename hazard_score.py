@@ -14,6 +14,12 @@ def load_flood_river():
 
 
 def calculate_hazard_score():
+<<<<<<< HEAD
+    conn = sqlite3.connect("school.db")
+    towns = pd.read_sql("SELECT town_name, lat, lon FROM school_town", conn)
+    conn.close()
+=======
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
 
     # 町界
     towns_gdf = gpd.read_file("isahaya_geo/r2ka42204.shp").to_crs("EPSG:4326")
@@ -46,10 +52,15 @@ def calculate_hazard_score():
     return towns_gdf[["town_name", "hazard_score"]]
 
 
+<<<<<<< HEAD
+def write_hazard_score_to_sqlite(towns):
+    conn = sqlite3.connect("school.db")
+=======
 def save_hazard_score_to_score_db():
     df = calculate_hazard_score()
 
     conn = sqlite3.connect(SCORE_DB)
+>>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
     cur = conn.cursor()
 
     for _, row in df.iterrows():
