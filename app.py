@@ -180,35 +180,35 @@ with tab2:
         with col1:
             if hospital_density > 60:
                 st.markdown(f"##### 医療充実度： <span style='color:#FF9800'>{hospital_density:.2f}</span>", unsafe_allow_html=True)
-            elif hospital_density < 60:
+            elif hospital_density < 40:
                 st.markdown(f"##### 医療充実度： <span style='color:#00BFFF'>{hospital_density:.2f}</span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"##### 医療充実度： {hospital_density:.2f}")
 
             if school_density > 60:
                 st.markdown(f"##### 教育充実度： <span style='color:#FF9800'>{school_density:.2f}</span>", unsafe_allow_html=True)
-            elif school_density < 60:
+            elif school_density < 40:
                 st.markdown(f"##### 教育充実度： <span style='color:#00BFFF'>{school_density:.2f}</span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"##### 教育充実度： {school_density:.2f}")
 
             if crime_density > 60:
                 st.markdown(f"##### 治安充実度： <span style='color:#FF9800'>{crime_density:.2f}</span>", unsafe_allow_html=True)
-            elif crime_density < 60:
+            elif crime_density < 40:
                 st.markdown(f"##### 治安充実度： <span style='color:#00BFFF'>{crime_density:.2f}</span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"##### 治安充実度： {crime_density:.2f}")
 
             if hazard_level > 60:
                 st.markdown(f"##### 災害充実度： <span style='color:#FF9800'>{hazard_level:.2f}</span>", unsafe_allow_html=True)
-            elif hazard_level < 60:
+            elif hazard_level < 40:
                 st.markdown(f"##### 災害充実度： <span style='color:#00BFFF'>{hazard_level:.2f}</span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"##### 災害充実度： {hazard_level:.2f}")
 
             if bus_density > 60:
                 st.markdown(f"##### 交通充実度： <span style='color:#FF9800'>{bus_density:.2f}</span>", unsafe_allow_html=True)
-            elif bus_density < 60:
+            elif bus_density < 40:
                 st.markdown(f"##### 交通充実度： <span style='color:#00BFFF'>{bus_density:.2f}</span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"##### 交通充実度： {bus_density:.2f}")
