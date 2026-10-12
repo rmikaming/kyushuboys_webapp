@@ -229,3 +229,81 @@ def update_school_count_from_score():
 if __name__ == "__main__":
     update_school_count_from_score()
     update_crime_count_from_crime_stats()
+
+def update_hazard_level_from_score():
+    """
+    score.db の score.hazard_score を
+    town.db の score.hazard_level に反映する
+    """
+
+    # score.db と town.db を開く
+    conn_score = sqlite3.connect("score.db")
+    conn_town = sqlite3.connect("data/town.db")
+
+    cur_score = conn_score.cursor()
+    cur_town = conn_town.cursor()
+
+    # score.db の hazard_score を取得
+    cur_score.execute("SELECT town_name, hazard_score FROM score")
+    rows = cur_score.fetchall()
+
+    # town.db の score テーブルに hazard_level カラムがあるか確認
+    cur_town.execute("PRAGMA table_info(score)")
+    columns = [row[1] for row in cur_town.fetchall()]
+
+    if "hazard_level" not in columns:
+        cur_town.execute("ALTER TABLE score ADD COLUMN hazard_level REAL")
+        print("town.db の score テーブルに hazard_level カラムを追加しました")
+
+    # hazard_score → hazard_level に反映
+    for town_name, hazard_score in rows:
+        cur_town.execute("""
+            UPDATE score
+            SET hazard_level = ?
+            WHERE TRIM(town_name) = TRIM(?)
+        """, (hazard_score, town_name))
+
+    conn_town.commit()
+    conn_score.close()
+    conn_town.close()
+
+    print("score.db の hazard_score を town.db の score.hazard_level に保存しました。")
+
+def update_bus_stop_count_from_score():
+    """
+    score.db の score.traffic_score を
+    town.db の score.bus_stop_count に反映する
+    """
+
+    # score.db と town.db を開く
+    conn_score = sqlite3.connect("score.db")
+    conn_town = sqlite3.connect("data/town.db")
+
+    cur_score = conn_score.cursor()
+    cur_town = conn_town.cursor()
+
+    # score.db の traffic_score を取得
+    cur_score.execute("SELECT town_name, traffic_score FROM score")
+    rows = cur_score.fetchall()
+
+    # town.db の score テーブルに bus_stop_count カラムがあるか確認
+    cur_town.execute("PRAGMA table_info(score)")
+    columns = [row[1] for row in cur_town.fetchall()]
+
+    if "bus_stop_count" not in columns:
+        cur_town.execute("ALTER TABLE score ADD COLUMN bus_stop_count REAL")
+        print("town.db の score テーブルに bus_stop_count カラムを追加しました")
+
+    # traffic_score → bus_stop_count に反映
+    for town_name, traffic_score in rows:
+        cur_town.execute("""
+            UPDATE score
+            SET bus_stop_count = ?
+            WHERE TRIM(town_name) = TRIM(?)
+        """, (traffic_score, town_name))
+
+    conn_town.commit()
+    conn_score.close()
+    conn_town.close()
+
+    print("score.db の traffic_score を town.db の score.bus_stop_count に保存しました。")
