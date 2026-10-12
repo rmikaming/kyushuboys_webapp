@@ -8,7 +8,7 @@ from database import DB_PATH, sync_score_from_town
 from hospital import update_hospital_db
 import importlib
 import score
-from hazard_score import calculate_hazard_score
+
 
 
 plt.rcParams["font.family"] = "Meiryo"
@@ -29,8 +29,8 @@ with tab1:
         towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
 
     # ★ 災害スコアを都度計算
-        hazard_df = calculate_hazard_score()
-        print(hazard_df[["town_name", "hazard_score"]])
+        
+       
 
         for t in towns:
             with st.spinner("🔍検索中"):
@@ -123,7 +123,7 @@ with tab2:
     towns = []
 
     # ★ 災害スコアを都度計算（一覧検索時に一度だけ）
-    hazard_df = calculate_hazard_score()
+   
 
     area_order = [
         "諫早地域",

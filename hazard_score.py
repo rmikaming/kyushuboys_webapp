@@ -12,8 +12,8 @@ def load_flood_river():
     return gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
 
 def calculate_hazard_score():
-    conn = sqlite3.connect("data/town.db")
-    towns = pd.read_sql("SELECT town_name, lat, lon FROM town", conn)
+    conn = sqlite3.connect("school.db")
+    towns = pd.read_sql("SELECT town_name, lat, lon FROM school_town", conn)
     conn.close()
 
     flood_mesh  = gpd.read_file("hazard_data/flood_mesh/10_計画規模/A31b-10-25_10_4929.shp").to_crs("EPSG:4326")
@@ -47,7 +47,7 @@ def calculate_hazard_score():
 # ★★★ score テーブルへ hazard_score を書き込む処理（追加） ★★★
 
 def write_hazard_score_to_sqlite(towns):
-    conn = sqlite3.connect("data/town.db")
+    conn = sqlite3.connect("school.db")
     cur = conn.cursor()
 
     # カラムがなければ追加
