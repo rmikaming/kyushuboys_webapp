@@ -1,6 +1,11 @@
 import sqlite3
 import os
 import pandas as pd
+import importlib
+import hazard_score
+importlib.reload(hazard_score)
+from hazard_score import calculate_hazard_score
+
 
 # -----------------------------
 # town.db のセットアップ
@@ -49,7 +54,7 @@ def setup_town_db():
 # score.db のセットアップ
 # -----------------------------
 def setup_score_db():
-    conn = sqlite3.connect("data/score.db")
+    conn = sqlite3.connect("score.db")
     cur = conn.cursor()
 
     cur.execute("""
@@ -60,7 +65,8 @@ def setup_score_db():
         crime_score REAL,
         bus_score REAL,
         hazard_score REAL,
-        traffic_score REAL
+        traffic_score REAL,
+        area REAL          
     );
     """)
 
@@ -74,10 +80,10 @@ def setup_score_db():
 # -----------------------------
 def insert_town_names():
     conn_town = sqlite3.connect("data/town.db")
-    towns = pd.read_sql("SELECT town_name FROM towns", conn_town)
+    towns = pd.read_sql("SELECT town_name FROM town", conn_town)
     conn_town.close()
 
-    conn_score = sqlite3.connect("data/score.db")
+    conn_score = sqlite3.connect("score.db")
     cur = conn_score.cursor()
 
     for _, row in towns.iterrows():
@@ -91,6 +97,27 @@ def insert_town_names():
 
     print("✔ score.db に町名を登録しました")
 
+def write_area():
+    # town.db から area を読み込む
+    conn_town = sqlite3.connect("data/town.db")
+    df_town = pd.read_sql("SELECT town_name, area FROM town", conn_town)
+    conn_town.close()
+
+    conn_score = sqlite3.connect("score.db")
+    cur = conn_score.cursor()
+
+    for _, row in df_town.iterrows():
+        cur.execute("""
+            UPDATE score
+            SET area = ?
+            WHERE town_name = ?
+        """, (row["area"], row["town_name"]))
+
+    conn_score.commit()
+    conn_score.close()
+
+    print("✔ area を score.db に統合しました")
+
 
 # -----------------------------
 # hazard_score の統合
@@ -99,7 +126,7 @@ from hazard_score import calculate_hazard_score
 def write_hazard_score():
     hazard_df = calculate_hazard_score()
 
-    conn = sqlite3.connect("data/score.db")
+    conn = sqlite3.connect("score.db")
     cur = conn.cursor()
 
     for _, row in hazard_df.iterrows():
@@ -122,7 +149,7 @@ from traffic_score import calculate_traffic_score
 def write_traffic_score():
     traffic_df = calculate_traffic_score()
 
-    conn = sqlite3.connect("data/score.db")
+    conn = sqlite3.connect("score.db")
     cur = conn.cursor()
 
     for _, row in traffic_df.iterrows():
@@ -144,9 +171,10 @@ def write_traffic_score():
 if __name__ == "__main__":
     print("=== セットアップ開始 ===")
 
-    setup_town_db()
+    # setup_town_db()
     setup_score_db()
     insert_town_names()
+    write_area() 
     write_hazard_score()
     write_traffic_score()
 
