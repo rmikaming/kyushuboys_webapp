@@ -4,15 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sqlite3
 import pandas as pd
-from database import DB_PATH
+from database import DB_PATH, sync_score_from_town, update_crime_count_from_crime_stats, update_school_count_from_score, update_hazard_level_from_score, update_bus_stop_count_from_score
 from hospital import update_hospital_db
 import importlib
 import score
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
 
 plt.rcParams["font.family"] = "Meiryo"
 
@@ -30,14 +25,7 @@ with tab1:
 
     if st.button("検索"):
         towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
-<<<<<<< HEAD
 
-    # ★ 災害スコアを都度計算
-        
-       
-
-=======
->>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
         for t in towns:
             with st.spinner("🔍検索中"):
                 hospital_density = get_score(t, "hospital_score")
@@ -98,12 +86,6 @@ with tab2:
     df = pd.read_sql("SELECT * FROM score", conn)
     towns = []
 
-<<<<<<< HEAD
-    # ★ 災害スコアを都度計算（一覧検索時に一度だけ）
-   
-
-=======
->>>>>>> 7a09d79bc635037f95f35426ba7d13a620cef84a
     area_order = [
         "諫早地域",
         "多良見地域",
@@ -271,9 +253,51 @@ with tab2:
 with tab3:
     st.subheader("❔情報の更新")
 
-    if st.button("病院情報を更新"):
-        with st.spinner("病院情報を更新中"):
-            update_hospital_db()
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if st.button("病院情報を更新"):
+            with st.spinner("病院情報を更新中"):
+                update_hospital_db()
+                #score.pyを再度読み込み、最新のDBからdfを作り直す
+                importlib.reload(score)
+            st.success("病院情報更新完了です")
+
+        if st.button("災害情報を更新"):
+            with st.spinner("災害情報を更新中"):
+                update_hazard_level_from_score()
+                #score.pyを再度読み込み、最新のDBからdfを作り直す
+                importlib.reload(score)
+            st.success("災害情報更新完了です")
+
+    with col2:
+        if st.button("教育情報を更新"):
+            with st.spinner("教育情報を更新中"):
+                update_school_count_from_score()
+                #score.pyを再度読み込み、最新のDBからdfを作り直す
+                importlib.reload(score)
+            st.success("教育情報更新完了です")
+
+        if st.button("交通情報を更新"):
+            with st.spinner("交通情報を更新中"):
+                update_bus_stop_count_from_score()
+                #score.pyを再度読み込み、最新のDBからdfを作り直す
+                importlib.reload(score)
+            st.success("交通情報更新完了です")
+
+    with col3:
+        if st.button("治安情報を更新"):
+            with st.spinner("治安情報を更新中"):
+                update_crime_count_from_crime_stats()
+                #score.pyを再度読み込み、最新のDBからdfを作り直す
+                importlib.reload(score)
+            st.success("治安情報更新完了です")
+
+    st.divider()
+
+    if st.button("町情報を更新"):
+        with st.spinner("町情報を更新中"):
+            sync_score_from_town()
             #score.pyを再度読み込み、最新のDBからdfを作り直す
             importlib.reload(score)
-        st.success("病院情報更新完了です")
+        st.success("治安情報更新完了です")
