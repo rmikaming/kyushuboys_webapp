@@ -4,12 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sqlite3
 import pandas as pd
-from database import DB_PATH, sync_score_from_town
+from database import DB_PATH
 from hospital import update_hospital_db
 import importlib
 import score
-from hazard_score import calculate_hazard_score
-
 
 plt.rcParams["font.family"] = "Meiryo"
 
@@ -27,58 +25,25 @@ with tab1:
 
     if st.button("検索"):
         towns = [t.strip() for t in towns_text.splitlines() if t.strip()]
-
-    # ★ 災害スコアを都度計算
-        hazard_df = calculate_hazard_score()
-        print(hazard_df[["town_name", "hazard_score"]])
-
         for t in towns:
             with st.spinner("🔍検索中"):
                 hospital_density = get_score(t, "hospital_score")
-                if hospital_density is None:
-                    st.warning(f"{t}の検索結果が見つかりません")
-                    continue
                 school_density = get_score(t, "school_score")
                 crime_density = get_score(t, "crime_score")
+                hazard_level = get_score(t, "hazard_score")
                 bus_density = get_score(t, "bus_score")
-
-            # ★ hazard_score は DB ではなく hazard_df から取得
-                hazard_row = hazard_df[hazard_df["town_name"] == t]
-
-                if len(hazard_row) == 0:
-                    print(f"[WARN] hazard_score 未登録: {t}")
-                    hazard_level = 0.0
-                else:
-                    hazard_level = hazard_row["hazard_score"].iloc[0]
-                print(t, hazard_level)
 
             col1, col2 = st.columns(2)
             
             #左側
             with col1:
-                st.markdown(f"#### 📋 {t} の住みよさカルテ")
+                st.markdown(f"### 📋 {t} の住みよさカルテ")
                 st.write(f"医療充実度 : {hospital_density:.2f}")
                 st.write(f"教育充実度 : {school_density:.2f}")
                 st.write(f"治安充実度 : {crime_density:.2f}")
                 st.write(f"災害充実度 : {hazard_level:.2f}")
                 st.write(f"交通充実度 : {bus_density:.2f}")
 
-            scores ={
-                "医療環境": hospital_density,
-                "教育環境": school_density,
-                "治安": crime_density,
-                "災害への安全性": hazard_level,
-                "交通環境": bus_density
-            }
-            good_points = [
-                name for name, score in scores.items()
-                if score > 60
-            ]
-            weak_points = [
-                name for name, score in scores.items()
-                if score < 40
-            ]
-       
             #右側（レーダーチャート）
             with col2:
                 labels = ["医療充実度", "教育充実度", "治安充実度", "災害充実度", "交通充実度"]
@@ -105,25 +70,20 @@ with tab1:
                 ax.set_ylim(0, 100)
                 st.pyplot(fig)
 
-        if good_points:
-            perfect = "と".join(good_points)
             st.write("📋 診断結果")
-            st.markdown(f"### {t}は<span style='color:#FF9800'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
-
-        if weak_points:
-            more = "と".join(weak_points)
-            st.write("📋 診断結果")
-            st.markdown(f"### {t}は<span style='color:#00BFFF'>{more}</span>が弱点です！", unsafe_allow_html=True)
-
+            st.markdown(f"### {t}は...が充実している町です！")
+                        
             st.divider()
+
+
+
+    else:
+        st.info("町名を入力してください")
 
 with tab2:
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql("SELECT * FROM score", conn)
     towns = []
-
-    # ★ 災害スコアを都度計算（一覧検索時に一度だけ）
-    hazard_df = calculate_hazard_score()
 
     area_order = [
         "諫早地域",
@@ -147,7 +107,29 @@ with tab2:
                     if st.checkbox(town, key=f"town_{town}"):
                         towns.append(town)
 
-    #以下tab1と同じ
+
+    #以下tab1と同じ(編集してます)
+    results =[]
+
+    sort_type = st.selectbox(
+        "条件を選んで並び替え",
+        [
+            "医療充実度",
+            "教育充実度",
+            "治安充実度",
+            "災害充実度",
+            "交通充実度"
+        ]
+    )
+
+    sort_map = {
+        "医療充実度": "hospital",
+        "教育充実度": "school",
+        "治安充実度": "crime",
+        "災害充実度": "hazard",
+        "交通充実度": "bus"
+    }
+
     for t in towns:
         with st.spinner("🔍検索中"):
             hospital_density = get_score(t, "hospital_score")
@@ -155,6 +137,25 @@ with tab2:
             crime_density = get_score(t, "crime_score")
             hazard_level = get_score(t, "hazard_score")
             bus_density = get_score(t, "bus_score")
+
+            results.append({
+                "town": t,
+                "hospital": hospital_density,
+                "school": school_density,
+                "crime": crime_density,
+                "hazard": hazard_level,
+                "bus":bus_density
+            })
+
+    results.sort(key=lambda x: x[sort_map[sort_type]], reverse=True)
+
+    for r in results:
+        t = r["town"]
+        hospital_density = r["hospital"]
+        school_density = r["school"]
+        crime_density = r["crime"]
+        hazard_level = r["hazard"]
+        bus_density = r["bus"]
 
         scores ={
             "医療環境": hospital_density,
@@ -169,18 +170,48 @@ with tab2:
         ]
         weak_points = [
             name for name, score in scores.items()
-            if score < 50
+            if score < 40
         ]
-        
+
+        st.markdown(f"#### 📋 {t} の住みよさカルテ")
+    
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown(f"#### 📋 {t} の住みよさカルテ")
-            st.write(f"医療充実度 : {hospital_density:.2f}")
-            st.write(f"教育充実度 : {school_density:.2f}")
-            st.write(f"治安充実度 : {crime_density:.2f}")
-            st.write(f"災害充実度 : {hazard_level:.2f}")
-            st.write(f"交通充実度 : {bus_density:.2f}")
+            if hospital_density > 60:
+                st.markdown(f"##### 医療充実度： <span style='color:#FF9800'>{hospital_density:.2f}</span>", unsafe_allow_html=True)
+            elif hospital_density < 60:
+                st.markdown(f"##### 医療充実度： <span style='color:#00BFFF'>{hospital_density:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"##### 医療充実度： {hospital_density:.2f}")
+
+            if school_density > 60:
+                st.markdown(f"##### 教育充実度： <span style='color:#FF9800'>{school_density:.2f}</span>", unsafe_allow_html=True)
+            elif school_density < 60:
+                st.markdown(f"##### 教育充実度： <span style='color:#00BFFF'>{school_density:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"##### 教育充実度： {school_density:.2f}")
+
+            if crime_density > 60:
+                st.markdown(f"##### 治安充実度： <span style='color:#FF9800'>{crime_density:.2f}</span>", unsafe_allow_html=True)
+            elif crime_density < 60:
+                st.markdown(f"##### 治安充実度： <span style='color:#00BFFF'>{crime_density:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"##### 治安充実度： {crime_density:.2f}")
+
+            if hazard_level > 60:
+                st.markdown(f"##### 災害充実度： <span style='color:#FF9800'>{hazard_level:.2f}</span>", unsafe_allow_html=True)
+            elif hazard_level < 60:
+                st.markdown(f"##### 災害充実度： <span style='color:#00BFFF'>{hazard_level:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"##### 災害充実度： {hazard_level:.2f}")
+
+            if bus_density > 60:
+                st.markdown(f"##### 交通充実度： <span style='color:#FF9800'>{bus_density:.2f}</span>", unsafe_allow_html=True)
+            elif bus_density < 60:
+                st.markdown(f"##### 交通充実度： <span style='color:#00BFFF'>{bus_density:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"##### 交通充実度： {bus_density:.2f}")
 
         with col2:
             labels = ["医療充実度", "教育充実度", "治安充実度", "災害充実度", "交通充実度"]
@@ -205,44 +236,25 @@ with tab2:
             ax.set_ylim(0, 100)
             st.pyplot(fig)
 
+        if good_points or weak_points:
+            st.write("📋 診断結果")
+
         if good_points:
             perfect = "と".join(good_points)
-            st.write("📋 診断結果")
             st.markdown(f"### {t}は<span style='color:#FF9800'>{perfect}</span>が充実している町です！", unsafe_allow_html=True)
 
         if weak_points:
             more = "と".join(weak_points)
-            st.write("📋 診断結果")
             st.markdown(f"### {t}は<span style='color:#00BFFF'>{more}</span>が弱点です！", unsafe_allow_html=True)
 
         st.divider()
 
 with tab3:
     st.subheader("❔情報の更新")
-    col1, col2 ,col3= st.columns(3)
-    with col1:
-        if st.button("病院情報を更新"):
-            with st.spinner("病院情報を更新中"):
-                update_hospital_db()
-                #score.pyを再度読み込み、最新のDBからdfを作り直す
-                importlib.reload(score)
-            st.success("病院情報更新完了です")
 
-        st.button("災害情報を更新")
-
-    with col2:
-        st.button("学校情報を更新")
-
-        st.button("交通情報を更新")
-
-    with col3:
-        st.button("治安情報を更新")
-
-    st.divider()
-
-    if st.button("町情報を更新"):
-        with st.spinner("町情報を更新中"):
-            sync_score_from_town()
+    if st.button("病院情報を更新"):
+        with st.spinner("病院情報を更新中"):
+            update_hospital_db()
             #score.pyを再度読み込み、最新のDBからdfを作り直す
             importlib.reload(score)
-        st.success("町情報更新完了です")
+        st.success("病院情報更新完了です")
