@@ -1,11 +1,9 @@
 import sqlite3
 import os
 import pandas as pd
-import importlib
-import hazard_score
-importlib.reload(hazard_score)
-from hazard_score import calculate_hazard_score
 
+from hazard_score import calculate_hazard_score
+from traffic_score import calculate_traffic_score
 
 # -----------------------------
 # town.db のセットアップ
@@ -28,15 +26,6 @@ def setup_town_db():
     """)
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS hazard (
-        town_name TEXT PRIMARY KEY,
-        hazard_flood REAL,
-        hazard_landslide REAL,
-        hazard_tsunami REAL
-    );
-    """)
-
-    cur.execute("""
     CREATE TABLE IF NOT EXISTS traffic (
         town_name TEXT PRIMARY KEY,
         route_count INTEGER,
@@ -54,11 +43,13 @@ def setup_town_db():
 # score.db のセットアップ
 # -----------------------------
 def setup_score_db():
-    conn = sqlite3.connect("score.db")
+    conn = sqlite3.connect("data/score.db")
     cur = conn.cursor()
 
+    cur.execute("DROP TABLE IF EXISTS score")
+
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS score (
+    CREATE TABLE score (
         town_name TEXT PRIMARY KEY,
         hospital_score REAL,
         school_score REAL,
@@ -66,7 +57,7 @@ def setup_score_db():
         bus_score REAL,
         hazard_score REAL,
         traffic_score REAL,
-        area REAL          
+        area REAL
     );
     """)
 
@@ -80,10 +71,10 @@ def setup_score_db():
 # -----------------------------
 def insert_town_names():
     conn_town = sqlite3.connect("data/town.db")
-    towns = pd.read_sql("SELECT town_name FROM town", conn_town)
+    towns = pd.read_sql("SELECT town_name FROM towns", conn_town)
     conn_town.close()
 
-    conn_score = sqlite3.connect("score.db")
+    conn_score = sqlite3.connect("data/score.db")
     cur = conn_score.cursor()
 
     for _, row in towns.iterrows():
@@ -97,13 +88,16 @@ def insert_town_names():
 
     print("✔ score.db に町名を登録しました")
 
+
+# -----------------------------
+# area の統合
+# -----------------------------
 def write_area():
-    # town.db から area を読み込む
     conn_town = sqlite3.connect("data/town.db")
-    df_town = pd.read_sql("SELECT town_name, area FROM town", conn_town)
+    df_town = pd.read_sql("SELECT town_name, area FROM towns", conn_town)
     conn_town.close()
 
-    conn_score = sqlite3.connect("score.db")
+    conn_score = sqlite3.connect("data/score.db")
     cur = conn_score.cursor()
 
     for _, row in df_town.iterrows():
@@ -122,14 +116,13 @@ def write_area():
 # -----------------------------
 # hazard_score の統合
 # -----------------------------
-from hazard_score import calculate_hazard_score
 def write_hazard_score():
-    hazard_df = calculate_hazard_score()
+    df = calculate_hazard_score()
 
-    conn = sqlite3.connect("score.db")
+    conn = sqlite3.connect("data/score.db")
     cur = conn.cursor()
 
-    for _, row in hazard_df.iterrows():
+    for _, row in df.iterrows():
         cur.execute("""
             UPDATE score
             SET hazard_score = ?
@@ -145,19 +138,24 @@ def write_hazard_score():
 # -----------------------------
 # traffic_score の統合
 # -----------------------------
-from traffic_score import calculate_traffic_score
 def write_traffic_score():
-    traffic_df = calculate_traffic_score()
+    df = calculate_traffic_score()
 
-    conn = sqlite3.connect("score.db")
+    conn = sqlite3.connect("data/score.db")
     cur = conn.cursor()
 
-    for _, row in traffic_df.iterrows():
+    for _, row in df.iterrows():
         cur.execute("""
             UPDATE score
             SET traffic_score = ?
             WHERE town_name = ?
         """, (float(row["traffic_score"]), row["town_name"]))
+
+    # traffic_score → bus_score にコピー
+    cur.execute("""
+        UPDATE score
+        SET bus_score = traffic_score
+    """)
 
     conn.commit()
     conn.close()
@@ -171,12 +169,11 @@ def write_traffic_score():
 if __name__ == "__main__":
     print("=== セットアップ開始 ===")
 
-    # setup_town_db()
+    setup_town_db()
     setup_score_db()
     insert_town_names()
-    write_area() 
+    write_area()
     write_hazard_score()
     write_traffic_score()
 
     print("=== セットアップ完了 ===")
-
